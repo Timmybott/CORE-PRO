@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datenschutz - CORE PRO Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent: #6366f1; --accent-glow: rgba(99, 102, 241, 0.4); --bg: #050507; --card: #101014; --border: #1f1f23; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: #ececec; min-height: 100vh; display: flex; flex-direction: column; }
+        .glass-card { background: var(--card); border: 1px solid var(--border); border-radius: 1rem; }
+        .nav-link { font-size: 13px; font-weight: 600; color: #a1a1aa; transition: color 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
+        .nav-link:hover { color: white; }
+    </style>
+</head>
+<body>
+    <nav class="border-b border-zinc-900 bg-black/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <img src="assets/logo.png" class="w-10 h-10 rounded-xl bg-zinc-900 object-contain" alt="Logo">
+                <span class="font-bold text-lg tracking-tight">CORE <span class="text-indigo-500">PRO</span></span>
+            </a>
+            <div class="flex items-center gap-8">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="about.html" class="nav-link">About</a>
+                <div class="relative group">
+                    <button class="nav-link cursor-default">Tools</button>
+                    <div class="absolute right-0 mt-2 w-56 bg-[#0b0c10] border border-[#1f1f23] rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50">
+                        <a href="tools/panel.html" class="flex items-center justify-center px-4 py-3 text-xs font-black text-white uppercase tracking-widest hover:bg-indigo-500/10">OBS CORE Pro</a>
+                    </div>
+                </div>
+                <a href="impressum.html" class="nav-link">Impressum</a>
+                <div id="nav-auth-container" class="pl-4 border-l border-zinc-800"></div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 py-20 px-6">
+        <div class="max-w-4xl mx-auto space-y-10">
+            <div class="text-center max-w-2xl mx-auto">
+                <div class="inline-block px-4 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-widest mb-4">
+                    Datenschutz
+                </div>
+                <h1 class="text-4xl md:text-5xl font-black tracking-tight">Deine Daten. Sicher.</h1>
+                <p class="text-zinc-400 text-sm md:text-base mt-4">Wir legen Wert auf einen pragmatischen, transparenten und sicheren Umgang mit Daten. Nachfolgend beschreiben wir in verständlicher Form, was wir speichern und warum.</p>
+            </div>
+
+            <div class="glass-card p-8 md:p-10 space-y-8">
+                <section>
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-indigo-400 mb-2">Verantwortlicher</h2>
+                    <p class="text-zinc-400 text-sm">CORE PRO Management • Kontakt: <span class="text-white font-bold">core.pro.de@gmail.com</span> • Discord: <a href="https://discord.gg/4vZMmf5BrE" target="_blank" class="text-indigo-400 underline">Join</a></p>
+                </section>
+                <section>
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-indigo-400 mb-2">Welche Daten werden verarbeitet?</h2>
+                    <ul class="text-zinc-400 text-sm space-y-2">
+                        <li>• Account-Daten: E-Mail-Adresse, UID, Rollen und Freigabestatus</li>
+                        <li>• Konfigurationsdaten: Profil- und Overlay-Einstellungen innerhalb des Tools</li>
+                        <li>• Technische Metadaten: Zeitstempel, einfache Nutzungsereignisse zur Stabilität</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-indigo-400 mb-2">Zwecke</h2>
+                    <p class="text-zinc-400 text-sm">Bereitstellung der Plattform, Synchronisation der Overlays, Rechteverwaltung durch Administratoren, technische Sicherheit und Missbrauchsprävention.</p>
+                </section>
+                <section>
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-indigo-400 mb-2">Rechtsgrundlagen</h2>
+                    <p class="text-zinc-400 text-sm">Einwilligung beim Registrieren sowie berechtigtes Interesse an der sicheren Bereitstellung von Funktionen. Für die manuelle Freigabe nutzen wir ein Rollen-/Approval-System.</p>
+                </section>
+                <section>
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-indigo-400 mb-2">Drittanbieter</h2>
+                    <p class="text-zinc-400 text-sm">Wir verwenden Firebase Auth und Firestore (Google). Daten werden dort gespeichert und verarbeitet, um Login und Konfigurationen zu ermöglichen.</p>
+                </section>
+                <section>
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-indigo-400 mb-2">Speicherdauer</h2>
+                    <p class="text-zinc-400 text-sm">Solange ein Account existiert oder bis er gelöscht wird. Konfigurationsdaten bleiben bestehen, bis du sie aktiv entfernst.</p>
+                </section>
+                <section>
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-indigo-400 mb-2">Betroffenenrechte</h2>
+                    <ul class="text-zinc-400 text-sm space-y-2">
+                        <li>• Auskunft, Berichtigung, Löschung deiner Daten</li>
+                        <li>• Widerruf von Einwilligungen</li>
+                        <li>• Kontakt: <span class="text-white font-bold">core.pro.de@gmail.com</span></li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <footer class="border-t border-zinc-900 py-12 bg-black">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-3 opacity-50">
+                <img src="assets/logo.png" class="w-6 h-6 rounded bg-zinc-900" alt="Logo">
+                <span class="text-sm font-bold tracking-tight">CORE PRO</span>
+            </div>
+            <div class="flex gap-6 text-xs font-bold text-zinc-600 uppercase tracking-widest">
+                <a href="https://discord.gg/4vZMmf5BrE" target="_blank" class="hover:text-indigo-400 transition-colors">Discord</a>
+                <a href="impressum.html" class="hover:text-white transition-colors">Impressum</a>
+                <a href="datenschutz.html" class="hover:text-white transition-colors">Datenschutz</a>
+                <a href="kontakt.html" class="hover:text-white transition-colors">Kontakt</a>
+            </div>
+            <div class="text-zinc-700 text-xs">
+                &copy; 2026 CORE PRO Management
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="assets/js/nav-auth.js"></script>
+</body>
+</html>

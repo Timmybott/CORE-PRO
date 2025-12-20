@@ -1,1 +1,0 @@
-# CORE-PRO-Management

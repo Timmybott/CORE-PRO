@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kontakt - CORE PRO Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent: #6366f1; --accent-glow: rgba(99, 102, 241, 0.4); --bg: #050507; --card: #101014; --border: #1f1f23; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: #ececec; min-height: 100vh; display: flex; flex-direction: column; }
+        .glass-card { background: var(--card); border: 1px solid var(--border); border-radius: 1rem; }
+        .nav-link { font-size: 13px; font-weight: 600; color: #a1a1aa; transition: color 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
+        .nav-link:hover { color: white; }
+        .hero-glow { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(0,0,0,0) 70%); top: 40%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 0; }
+    </style>
+</head>
+<body>
+    <nav class="border-b border-zinc-900 bg-black/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <img src="assets/logo.png" class="w-10 h-10 rounded-xl bg-zinc-900 object-contain" alt="Logo">
+                <span class="font-bold text-lg tracking-tight">CORE <span class="text-indigo-500">PRO</span></span>
+            </a>
+            <div class="flex items-center gap-8">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="about.html" class="nav-link">About</a>
+                <div class="relative group">
+                    <button class="nav-link cursor-default">Tools</button>
+                    <div class="absolute right-0 mt-2 w-56 bg-[#0b0c10] border border-[#1f1f23] rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50">
+                        <a href="tools/panel.html" class="flex items-center justify-center px-4 py-3 text-xs font-black text-white uppercase tracking-widest hover:bg-indigo-500/10">OBS CORE Pro</a>
+                    </div>
+                </div>
+                <a href="impressum.html" class="nav-link">Impressum</a>
+                <div id="nav-auth-container" class="pl-4 border-l border-zinc-800"></div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 py-20 px-6 relative overflow-hidden">
+        <div class="hero-glow"></div>
+        <div class="max-w-5xl mx-auto space-y-12 relative z-10">
+            <div class="text-center max-w-3xl mx-auto space-y-6">
+                <div class="inline-block px-4 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-widest">
+                    Kontakt
+                </div>
+                <h1 class="text-4xl md:text-5xl font-black tracking-tight leading-tight">Lass uns in Kontakt bleiben</h1>
+                <p class="text-zinc-400 text-sm md:text-base">Wir sind Creator, Entwickler und Enthusiasten. Wenn du Fragen hast, Feedback geben möchtest oder einfach Hallo sagen willst, nutze die folgenden Wege. Wir freuen uns über jede Nachricht und sind bestrebt, schnell zu antworten.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card p-8">
+                    <div class="text-indigo-500 text-sm font-black uppercase tracking-widest mb-2">Community</div>
+                    <h2 class="text-xl font-bold mb-3">Discord</h2>
+                    <p class="text-zinc-400 text-sm mb-4">Tritt unserer Community bei, diskutiere Ideen, stelle Fragen und vernetze dich mit anderen. Wir sind dort täglich aktiv und helfen gerne weiter.</p>
+                    <a href="https://discord.gg/4vZMmf5BrE" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-widest">
+                        Join auf Discord
+                    </a>
+                </div>
+                <div class="glass-card p-8">
+                    <div class="text-indigo-500 text-sm font-black uppercase tracking-widest mb-2">Direkt</div>
+                    <h2 class="text-xl font-bold mb-3">E-Mail</h2>
+                    <p class="text-zinc-400 text-sm mb-4">Du bevorzugst den klassischen Weg? Schreib uns eine E-Mail mit deinem Anliegen. Wir lesen jede Nachricht und melden uns schnellstmöglich zurück.</p>
+                    <div class="px-4 py-3 rounded-lg bg-black/40 border border-indigo-500/30 text-white font-bold">core.pro.de@gmail.com</div>
+                </div>
+            </div>
+
+            <div class="glass-card p-8 md:p-10">
+                <div class="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Warum wir antworten</div>
+                <p class="text-zinc-400 text-sm">CORE PRO ist ein Projekt mit Leidenschaft. Austausch hilft uns, das System zu verbessern, Features zu priorisieren und Stabilität zu erhöhen. Egal ob Bugreport, Feature-Idee oder einfach Feedback – wir danken dir für deinen Input.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="border-t border-zinc-900 py-12 bg-black">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-3 opacity-50">
+                <img src="assets/logo.png" class="w-6 h-6 rounded bg-zinc-900" alt="Logo">
+                <span class="text-sm font-bold tracking-tight">CORE PRO</span>
+            </div>
+            <div class="flex gap-6 text-xs font-bold text-zinc-600 uppercase tracking-widest">
+                <a href="https://discord.gg/4vZMmf5BrE" target="_blank" class="hover:text-indigo-400 transition-colors">Discord</a>
+                <a href="impressum.html" class="hover:text-white transition-colors">Impressum</a>
+                <a href="datenschutz.html" class="hover:text-white transition-colors">Datenschutz</a>
+                <a href="kontakt.html" class="hover:text-white transition-colors">Kontakt</a>
+            </div>
+            <div class="text-zinc-700 text-xs">
+                &copy; 2026 CORE PRO Management
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="assets/js/nav-auth.js"></script>
+</body>
+</html>

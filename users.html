@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benutzerverwaltung - CORE PRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent: #6366f1; --accent-glow: rgba(99, 102, 241, 0.4); --bg: #050507; --card: #101014; --border: #1f1f23; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: #ececec; min-height: 100vh; display: flex; flex-direction: column; }
+        .glass-card { background: var(--card); border: 1px solid var(--border); border-radius: 1rem; }
+        .nav-link { font-size: 13px; font-weight: 600; color: #a1a1aa; transition: color 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
+        .nav-link:hover { color: white; }
+    </style>
+</head>
+<body>
+    <nav class="border-b border-zinc-900 bg-black/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <img src="assets/logo.png" class="w-10 h-10 rounded-xl bg-zinc-900 object-contain" alt="Logo">
+                <span class="font-bold text-lg tracking-tight">CORE <span class="text-indigo-500">PRO</span></span>
+            </a>
+            <div class="flex items-center gap-8">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="about.html" class="nav-link">About</a>
+                <div class="relative group">
+                    <button class="nav-link cursor-default">Tools</button>
+                    <div class="absolute right-0 mt-2 w-56 bg-[#0b0c10] border border-[#1f1f23] rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50">
+                        <a href="tools/panel.html" class="flex items-center justify-center px-4 py-3 text-xs font-black text-white uppercase tracking-widest hover:bg-indigo-500/10">OBS CORE Pro</a>
+                    </div>
+                </div>
+                <a href="impressum.html" class="nav-link">Impressum</a>
+                <div id="nav-auth-container" class="pl-4 border-l border-zinc-800"></div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 py-12 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-px bg-zinc-800 flex-1"></div>
+                <h2 class="text-sm font-bold uppercase tracking-widest text-indigo-400">Benutzerverwaltung</h2>
+                <div class="h-px bg-zinc-800 flex-1"></div>
+            </div>
+
+            <div id="login-guard" class="glass-card p-6 mb-6 hidden">
+                <div class="text-center text-zinc-300 text-sm font-bold">Bitte zuerst anmelden. <a href="login.html" class="text-indigo-400 underline">Login öffnen</a></div>
+            </div>
+            <div id="admin-guard" class="glass-card p-6 mb-6 hidden">
+                <div class="text-center text-red-400 text-sm font-bold">Nur Administratoren dürfen diese Seite öffnen.</div>
+            </div>
+
+            <div id="users-page" class="glass-card p-6 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="text-[10px] font-black uppercase tracking-widest text-zinc-500">Übersicht</div>
+                    <div class="text-[10px] font-black uppercase tracking-widest text-zinc-400" id="admin-label"></div>
+                </div>
+                <div id="users-list" class="divide-y divide-zinc-800"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="border-t border-zinc-900 py-12 bg-black">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-3 opacity-50">
+                <img src="assets/logo.png" class="w-6 h-6 rounded bg-zinc-900" alt="Logo">
+                <span class="text-sm font-bold tracking-tight">CORE PRO</span>
+            </div>
+            <div class="flex gap-6 text-xs font-bold text-zinc-600 uppercase tracking-widest">
+                <a href="https://discord.gg/4vZMmf5BrE" target="_blank" class="hover:text-indigo-400 transition-colors">Discord</a>
+                <a href="impressum.html" class="hover:text-white transition-colors">Impressum</a>
+                <a href="datenschutz.html" class="hover:text-white transition-colors">Datenschutz</a>
+                <a href="kontakt.html" class="hover:text-white transition-colors">Kontakt</a>
+            </div>
+            <div class="text-zinc-700 text-xs">
+                &copy; 2026 CORE PRO Management
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="assets/js/nav-auth.js"></script>
+
+    <script>
+        const pageAuth = firebase.auth();
+        const pageDb = firebase.firestore();
+
+        async function guard() {
+            const user = pageAuth.currentUser;
+            if (!user) {
+                document.getElementById('login-guard').classList.remove('hidden');
+                document.getElementById('admin-guard').classList.add('hidden');
+                document.getElementById('users-page').classList.add('hidden');
+                return false;
+            }
+            const doc = await pageDb.collection('users').doc(user.uid).get();
+            const data = doc.exists ? doc.data() : {};
+            const isAdmin = data.role === 'admin';
+            document.getElementById('admin-label').innerText = isAdmin ? 'Admin' : 'Nicht Admin';
+            if (!isAdmin) {
+                document.getElementById('login-guard').classList.add('hidden');
+                document.getElementById('admin-guard').classList.remove('hidden');
+                document.getElementById('users-page').classList.add('hidden');
+                return false;
+            }
+            document.getElementById('login-guard').classList.add('hidden');
+            document.getElementById('admin-guard').classList.add('hidden');
+            document.getElementById('users-page').classList.remove('hidden');
+            return true;
+        }
+
+        async function loadUsers() {
+            const list = document.getElementById('users-list');
+            list.innerHTML = '<div class="text-center text-zinc-500 text-[10px] py-6">Lade Benutzer...</div>';
+            try {
+                const snap = await pageDb.collection('users').get();
+                list.innerHTML = '';
+                const pending = [];
+                const approved = [];
+                snap.forEach(d => {
+                    const u = { id: d.id, ...d.data() };
+                    if (u.approved) approved.push(u);
+                    else pending.push(u);
+                });
+
+                if (pending.length > 0) {
+                    const h = document.createElement('h4');
+                    h.className = 'text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2';
+                    h.innerText = 'Warten auf Freigabe';
+                    list.appendChild(h);
+
+                    pending.forEach(u => {
+                        const row = document.createElement('div');
+                        row.className = 'flex items-center justify-between py-3';
+                        row.innerHTML = `
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded bg-indigo-600 flex items-center justify-center text-xs font-bold text-white">${(u.email || '??').substring(0,2).toUpperCase()}</div>
+                                <div>
+                                    <div class="text-xs font-bold text-white">${u.email || 'Email n/a'}</div>
+                                    <div class="text-[10px] text-zinc-500 uppercase tracking-widest">Wartet</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-[10px] font-black text-white">Freigeben</button>
+                                <button class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[10px] font-black text-white">Passwort zurücksetzen</button>
+                                <button class="px-2 py-1 rounded bg-red-600 hover:bg-red-500 text-[10px] font-black text-white">Ablehnen</button>
+                            </div>
+                        `;
+                        const [btnApprove, btnReset, btnReject] = row.querySelectorAll('button');
+                        btnApprove.onclick = async () => {
+                            await pageDb.collection('users').doc(u.id).update({ approved: true });
+                            loadUsers();
+                        };
+                        btnReset.onclick = async () => {
+                            if (u.email) {
+                                try { await pageAuth.sendPasswordResetEmail(u.email); alert('Reset-E-Mail gesendet'); } catch(e) { alert(e.message); }
+                            } else { alert('Keine E-Mail vorhanden'); }
+                        };
+                        btnReject.onclick = async () => {
+                            if (confirm('Registrierungsanfrage ablehnen und Daten löschen?')) {
+                                await pageDb.collection('users').doc(u.id).delete();
+                                loadUsers();
+                            }
+                        };
+                        list.appendChild(row);
+                    });
+                }
+
+                const h2 = document.createElement('h4');
+                h2.className = 'text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 mt-4';
+                h2.innerText = 'Alle Benutzer';
+                list.appendChild(h2);
+
+                if (!approved.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'text-center text-zinc-500 text-[10px] py-6';
+                    empty.innerText = 'Keine Benutzer gefunden';
+                    list.appendChild(empty);
+                } else {
+                    approved.forEach(u => {
+                        const isAdminUser = u.role === 'admin';
+                        const row = document.createElement('div');
+                        row.className = 'flex items-center justify-between py-3';
+                        row.innerHTML = `
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded ${isAdminUser ? 'bg-indigo-600' : 'bg-zinc-800'} flex items-center justify-center text-xs font-bold text-white">${(u.email || '??').substring(0,2).toUpperCase()}</div>
+                                <div>
+                                    <div class="text-xs font-bold text-white">${u.email || 'Email n/a'}</div>
+                                    <div class="text-[10px] text-zinc-500 uppercase tracking-widest">${isAdminUser ? 'Admin' : 'Freigeschaltet'}</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[10px] font-black text-white">${isAdminUser ? 'Admin entfernen' : 'Admin geben'}</button>
+                                <button class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[10px] font-black text-white">Freigabe entfernen</button>
+                                <button class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[10px] font-black text-white">Passwort zurücksetzen</button>
+                                <button class="px-2 py-1 rounded bg-red-600 hover:bg-red-500 text-[10px] font-black text-white">Account löschen</button>
+                            </div>
+                        `;
+                        const [btnRole, btnUnapprove, btnReset, btnDelete] = row.querySelectorAll('button');
+                        btnRole.onclick = async () => {
+                            const newRole = isAdminUser ? null : 'admin';
+                            await pageDb.collection('users').doc(u.id).update({ role: newRole || firebase.firestore.FieldValue.delete() });
+                            loadUsers();
+                        };
+                        btnUnapprove.onclick = async () => {
+                            await pageDb.collection('users').doc(u.id).update({ approved: false });
+                            loadUsers();
+                        };
+                        btnReset.onclick = async () => {
+                            if (u.email) {
+                                try { await pageAuth.sendPasswordResetEmail(u.email); alert('Reset-E-Mail gesendet'); } catch(e) { alert(e.message); }
+                            } else { alert('Keine E-Mail vorhanden'); }
+                        };
+                        btnDelete.onclick = async () => {
+                            if (confirm('Benutzer-Daten löschen?')) {
+                                await pageDb.collection('users').doc(u.id).delete();
+                                loadUsers();
+                            }
+                        };
+                        list.appendChild(row);
+                    });
+                }
+            } catch (e) {
+                list.innerHTML = `<div class="text-center text-red-500 text-[10px] py-6">Fehler beim Laden: ${e.message}</div>`;
+            }
+        }
+
+        pageAuth.onAuthStateChanged(async (user) => {
+            if (await guard()) {
+                loadUsers();
+                if (typeof initNavAuth === 'function') initNavAuth('nav-auth-container');
+            }
+        });
+    </script>
+</body>
+</html>

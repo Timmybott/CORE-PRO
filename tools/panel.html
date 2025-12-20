@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS CORE PRO - Advanced Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent: #6366f1; --accent-glow: rgba(99, 102, 241, 0.4); --bg: #050507; --card: #101014; --border: #1f1f23; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: #ececec; overflow: hidden; height: 100vh; }
+        .glass-card { background: var(--card); border: 1px solid var(--border); border-radius: 1rem; }
+        
+        .tab-btn { 
+            display: flex; align-items: center; gap: 8px;
+            padding: 12px 16px; font-size: 10px; font-weight: 800; border-radius: 10px 10px 0 0; 
+            cursor: pointer; transition: all 0.2s; border-bottom: 3px solid transparent; 
+            color: #71717a; text-transform: uppercase; position: relative;
+        }
+        .tab-btn:hover { color: white; }
+        .tab-btn.active:hover { transform: none; box-shadow: none; }
+        .tab-btn.active { border-bottom-color: var(--accent); }
+        .tab-btn.active::after {
+            content: "";
+            position: absolute;
+            left: 0; right: 0; bottom: -3px;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(99,102,241,0) 0%, rgba(99,102,241,1) 20%, rgba(99,102,241,1) 80%, rgba(99,102,241,0) 100%);
+            box-shadow: 0 0 12px rgba(99,102,241,0.8);
+            border-radius: 2px;
+        }
+        a.nav-link:hover { color: white; text-shadow: 0 0 10px rgba(99,102,241,0.5); }
+        button:hover { filter: brightness(1.08); }
+        a.nav-link:hover { color: white; text-shadow: 0 0 10px rgba(99,102,241,0.5); }
+        button:hover { filter: brightness(1.08); }
+        
+        .tab-btn.active { background: var(--card); color: white; border-bottom-color: var(--accent); }
+        .tab-close { opacity: 0.3; transition: opacity 0.2s; font-size: 12px; }
+        .tab-close:hover { opacity: 1; color: #ef4444; }
+
+        .preview-canvas { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; overflow: hidden; border-radius: 0.75rem; background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 20px 20px; }
+        .preview-item { position: absolute; cursor: grab; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box; transition: border-radius 0.1s, background 0.2s; }
+        .preview-item.hidden-src { opacity: 0.3; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.2) 5px, rgba(0,0,0,0.2) 10px); }
+        .preview-item.selected { border: 2px solid var(--accent); z-index: 100; box-shadow: 0 0 15px var(--accent-glow); }
+        .preview-item.locked { cursor: default; border-color: rgba(255,255,255,0.1); box-shadow: none; }
+        .preview-item.locked .resizer { display: none !important; }
+        .resizer { position: absolute; width: 15px; height: 15px; right: 0; bottom: 0; cursor: nwse-resize; background: var(--accent); display: none; }
+        .preview-item.selected .resizer { display: block; }
+        
+        input, select, textarea { background: #1a1a20 !important; border: 1px solid #2d2d35 !important; color: white !important; padding: 8px 12px; border-radius: 8px; font-size: 13px; width: 100%; }
+        input[type="checkbox"] { width: 18px !important; height: 18px !important; cursor: pointer; appearance: auto; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #2d2d35; border-radius: 10px; }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <header class="px-6 pt-6 border-b border-zinc-900">
+        <div class="flex justify-between items-center mb-4">
+            <a href="../index.html" class="flex items-center gap-4 hover:opacity-80 transition-opacity">
+                <img src="../assets/logo.png" class="w-10 h-10 rounded-xl shadow-lg shadow-indigo-500/20 object-contain bg-zinc-900" alt="Logo">
+                <div>
+                    <h1 class="font-bold text-lg uppercase tracking-tight">OBS CORE <span class="text-indigo-500 text-sm">PRO</span></h1>
+                    <div class="flex items-center gap-2 text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
+                        <div id="status-dot" class="w-1.5 h-1.5 rounded-full bg-red-600"></div>
+                        <span id="status-text">Wird verbunden...</span>
+                    </div>
+                </div>
+            </a>
+            <div id="nav-auth-container" class="ml-4 pl-4 border-l border-zinc-800"></div>
+        </div>
+        <div id="tabs-container" class="flex items-end overflow-x-auto gap-1"></div>
+    </header>
+
+    <!-- Floating Add Streamer Button (vertically centered within viewport) -->
+    <button id="add-streamer-btn" class="fixed right-6 translate-y-[150%] bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg text-[10px] font-black transition-all text-white shadow-lg shadow-indigo-500/20 z-40">PROFIL ERSTELLEN</button>
+
+    <main id="editor" class="flex-1 flex p-6 gap-6 hidden">
+        <!-- Sidebar -->
+        <div class="w-72 flex flex-col gap-4">
+            <div class="glass-card p-4 flex flex-col h-1/2 overflow-hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-[9px] font-black text-zinc-500 uppercase tracking-wider">Szenen</span>
+                    <button id="btn-add-scene" class="text-indigo-400 hover:text-white font-bold text-lg">+</button>
+                </div>
+                <div id="scenes-list" class="space-y-1 overflow-y-auto pr-1"></div>
+            </div>
+            
+            <div class="glass-card p-4 flex flex-col h-1/2 overflow-hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-[9px] font-black text-zinc-500 uppercase tracking-wider">Quellen & Ebenen</span>
+                    <button id="btn-open-modal" class="text-indigo-400 text-[10px] font-black hover:text-white bg-indigo-500/10 px-2 py-1 rounded">+ ADD</button>
+                </div>
+                <div id="sources-list" class="space-y-1 overflow-y-auto pr-1"></div>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="flex-1 flex flex-col gap-4">
+            <div class="glass-card p-2 bg-black/40 relative">
+                <div id="canvas" class="preview-canvas"></div>
+            </div>
+            <div class="glass-card p-4 flex gap-4 items-center">
+                <div class="flex-1">
+                    <label class="text-[9px] font-black text-zinc-500 uppercase block mb-1">Overlay URL</label>
+                    <div id="overlay-url" class="bg-black/50 p-2 rounded border border-white/5 font-mono text-[10px] text-zinc-400 truncate">Wähle ein Profil...</div>
+                </div>
+                <button id="btn-copy-url" class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded text-[10px] font-black text-white transition-colors">KOPIEREN</button>
+            </div>
+        </div>
+
+        <!-- Inspector -->
+        <div class="w-80 flex flex-col">
+            <div id="inspector" class="glass-card h-full p-5 overflow-y-auto hidden">
+                <div class="flex justify-between items-center mb-6 pb-4 border-b border-zinc-800">
+                    <h3 class="font-black text-[10px] uppercase tracking-widest text-indigo-400">Eigenschaften</h3>
+                </div>
+                <div id="inspector-fields" class="space-y-5"></div>
+            </div>
+            <div id="no-selection" class="glass-card h-full flex flex-col items-center justify-center text-zinc-600 text-center p-10 italic text-xs text-zinc-400">
+                Wähle eine Quelle aus
+            </div>
+        </div>
+    </main>
+
+    <div id="welcome" class="flex-1 flex items-center justify.center">
+        <div class="text-center">
+            <div class="text-6xl mb-6">🎬</div>
+            <p class="text-[10px] uppercase font-black tracking-widest mb-4 text-zinc-400">Bitte Profil erstellen</p>
+        </div>
+    </div>
+
+    <!-- Modals -->
+<div id="source-modal" class="modal hidden">
+    <div class="glass-card w-80 p-6 shadow-2xl">
+        <h3 class="text-xs font-black uppercase mb-4 tracking-widest text-center">Neue Quelle</h3>
+        <div class="grid grid-cols-2 gap-3">
+            <button data-type="text" class="add-src-btn bg-zinc-900 p-4 rounded-xl hover:bg-indigo-600 transition-colors text-[10px] font-bold">TEXT</button>
+            <button data-type="image" class="add-src-btn bg-zinc-900 p-4 rounded-xl hover:bg-indigo-600 transition-colors text-[10px] font-bold">BILD</button>
+            <button data-type="web" class="add-src-btn bg-zinc-900 p-4 rounded-xl hover:bg-indigo-600 transition-colors text-[10px] font-bold">WEB</button>
+            <button data-type="timer" class="add-src-btn bg-zinc-900 p-4 rounded-xl hover:bg-indigo-600 transition-colors text-[10px] font-bold">TIMER</button>
+            <button data-type="video" class="add-src-btn bg-zinc-900 p-4 rounded-xl hover:bg-indigo-600 transition-colors text-[10px] font-bold col-span-2">YOUTUBE / VIDEO CODE</button>
+        </div>
+        <button id="btn-close-modal" class="w-full mt-6 text-[9px] font-black opacity-30 uppercase">Abbrechen</button>
+    </div>
+</div>
+
+<!-- Removed users modal for panel -->
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCtCIVlpeHxk58T0jocsAbz4sdZTvPKzys",
+            authDomain: "new-obs-data.firebaseapp.com",
+            projectId: "new-obs-data",
+            storageBucket: "new-obs-data.firebasestorage.app",
+            messagingSenderId: "552069224960",
+            appId: "1:552069224960:web:85dda7a0201682c96156e5",
+            measurementId: "G-C2M3ZEYXRT"
+        };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'obs-pro-v1';
+        let db, auth, streamers = [], currentId = null, selectedId = null;
+        let currentUser = null, currentUserData = null;
+
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            auth = firebase.auth();
+
+            // Auth & Approval Logic
+            auth.onAuthStateChanged(async (user) => {
+                if (!user) {
+                    window.location.href = '../login.html';
+                    return;
+                }
+
+                // Check approval
+                try {
+                    const userDoc = await db.collection("users").doc(user.uid).get();
+                    currentUser = user;
+                    currentUserData = userDoc.exists ? userDoc.data() : {};
+                    if (!userDoc.exists || !currentUserData.approved) {
+                        alert("Account noch nicht freigeschaltet. Bitte warte auf Bestätigung durch einen Administrator.");
+                        await auth.signOut();
+                        window.location.href = '../login.html';
+                        return;
+                    }
+
+                    document.getElementById('status-dot').className = "w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]";
+                    document.getElementById('status-text').innerText = "Verbunden";
+                    if (typeof initNavAuth === 'function') { initNavAuth('nav-auth-container'); }
+                    if (currentUserData.role === 'admin' && window.location.hash === '#users') {
+                        window.openUsersModal && window.openUsersModal();
+                    }
+                    startSync();
+                } catch (e) {
+                    console.error("Auth Check Error:", e);
+                    alert("Fehler bei der Authentifizierung: " + e.message);
+                }
+            });
+        } catch (e) {
+            console.error("Init Error:", e);
+        }
+
+        // Users modal removed; use users.html for management
+
+        async function loadUsers() {
+            const list = document.getElementById('users-list');
+            list.innerHTML = '<div class="text-center text-zinc-500 text-[10px] italic">Lade...</div>';
+            try {
+                // Get all users
+                const snap = await db.collection("users").get();
+                
+                list.innerHTML = '';
+                
+                const pending = [];
+                const approved = [];
+                let hasAdmin = false;
+                
+                snap.forEach(d => {
+                    const u = { id: d.id, ...d.data() };
+                    if (!u.approved) pending.push(u);
+                    else approved.push(u);
+                    if (u.role === 'admin') hasAdmin = true;
+                });
+
+                const isAdmin = currentUserData && currentUserData.role === 'admin';
+
+                if (!hasAdmin && currentUser && !isAdmin) {
+                    const boot = document.createElement('div');
+                    boot.className = 'glass-card p-3 mb-3 border border-yellow-600/30 bg-yellow-500/10 rounded';
+                    boot.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div class="text-[10px] font-bold text-yellow-300 uppercase tracking-widest">Kein Admin gefunden</div>
+                            <button class="make-self-admin bg-yellow-600 hover:bg-yellow-500 text-white text-[9px] font-bold px-2 py-1 rounded">Mich zum Admin machen</button>
+                        </div>
+                    `;
+                    boot.querySelector('.make-self-admin').onclick = async () => {
+                        if (confirm('Dich selbst zum Admin machen?')) {
+                            await db.collection('users').doc(currentUser.uid).update({ role: 'admin' });
+                            currentUserData.role = 'admin';
+                            loadUsers();
+                        }
+                    };
+                    list.appendChild(boot);
+                }
+
+                // Pending Section
+                if (pending.length > 0) {
+                    const h = document.createElement('h4');
+                    h.className = "text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 mt-2";
+                    h.innerText = "Warten auf Freigabe";
+                    list.appendChild(h);
+                    
+                    pending.forEach(u => {
+                        const div = document.createElement('div');
+                        div.className = "flex justify-between items-center bg-zinc-900 p-2 rounded border border-zinc-800 mb-2";
+                        div.innerHTML = `
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold text-white">${u.email}</span>
+                                <span class="text-[8px] text-zinc-500">${u.createdAt?.toDate ? u.createdAt.toDate().toLocaleString() : 'Datum n/a'}</span>
+                            </div>
+                            ${isAdmin ? '<button class="approve-btn bg-green-600 hover:bg-green-500 text-white text-[9px] font-bold px-2 py-1 rounded transition-colors">FREIGEBEN</button>' : '<span class="text-[8px] text-zinc-500 font-bold uppercase">Wartet</span>'}
+                        `;
+                        if (isAdmin) {
+                            div.querySelector('.approve-btn').onclick = async () => {
+                                if(confirm(`Benutzer ${u.email} freischalten?`)) {
+                                    await db.collection("users").doc(u.id).update({ approved: true });
+                                    loadUsers();
+                                }
+                            };
+                        }
+                        list.appendChild(div);
+                    });
+                } else {
+                    list.innerHTML += '<div class="text-center text-zinc-500 text-[10px] py-2 border-b border-zinc-800">Keine ausstehenden Anfragen</div>';
+                }
+
+                // Approved Section (Admin Management)
+                const h2 = document.createElement('h4');
+                h2.className = "text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 mt-4";
+                h2.innerText = "Alle Benutzer";
+                list.appendChild(h2);
+
+                approved.forEach(u => {
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center bg-black/20 p-2 rounded border border-zinc-800/50 mb-1";
+                    const isAdminUser = u.role === 'admin';
+                    div.innerHTML = `
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold ${isAdminUser ? 'text-indigo-400' : 'text-zinc-400'}">${u.email} ${isAdminUser ? '(Admin)' : ''}</span>
+                        </div>
+                        ${isAdmin && !isAdminUser ? `<button class="promote-btn bg-zinc-800 hover:bg-indigo-600 text-white text-[9px] font-bold px-2 py-1 rounded transition-colors">MAKE ADMIN</button>` : '<span class="text-[8px] text-zinc-600 font-bold uppercase">' + (isAdminUser ? 'Admin' : '') + '</span>'}
+                    `;
+                    if (isAdmin && !isAdminUser) {
+                        div.querySelector('.promote-btn').onclick = async () => {
+                            if(confirm(`${u.email} zum Administrator machen?`)) {
+                                await db.collection("users").doc(u.id).update({ role: 'admin' });
+                                loadUsers();
+                            }
+                        };
+                    }
+                    list.appendChild(div);
+                });
+
+            } catch (e) {
+                list.innerHTML = `<div class="text-red-500 text-[10px]">${e.message}</div>`;
+            }
+        }
+
+        function startSync() {
+            db.collection('artifacts').doc(appId).collection('public').doc('data').collection('streamers').onSnapshot((snap) => {
+                streamers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderTabs();
+                if (currentId) updateUI();
+            });
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('tabs-container');
+            container.innerHTML = '';
+            
+            // Wir filtern die Streamer so, dass nur die angezeigt werden, die nicht versteckt sind
+            const visibleStreamers = streamers.filter(s => s.hiddenInPanel !== true);
+
+            if (!streamers.length) {
+                document.getElementById('welcome').classList.remove('hidden');
+                document.getElementById('editor').classList.add('hidden');
+                return;
+            }
+            
+            document.getElementById('welcome').classList.add('hidden');
+            document.getElementById('editor').classList.remove('hidden');
+
+            if (!currentId && visibleStreamers.length) {
+                currentId = visibleStreamers[0].id;
+            }
+
+            streamers.forEach(s => {
+                // Nur rendern, wenn nicht versteckt
+                if (s.hiddenInPanel) return;
+
+                const btn = document.createElement('div');
+        btn.className = `tab-btn ${currentId === s.id ? 'active' : ''}`;
+        btn.innerHTML = `<span>${s.name}</span><button class="tab-close" title="Tab einklappen (bleibt in OBS aktiv)">✕</button>`;
+        
+        btn.onclick = () => { 
+            currentId = s.id; 
+            selectedId = null; 
+            renderTabs(); 
+            updateUI(); 
+        };
+
+        // Geänderte Schließen-Logik: Nur verstecken statt löschen
+        btn.querySelector('.tab-close').onclick = async (e) => {
+            e.stopPropagation();
+            if(confirm(`Tab "${s.name}" im Editor ausblenden? (Bleibt in OBS aktiv)`)) {
+                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('streamers').doc(s.id).update({
+                    hiddenInPanel: true
+                });
+                if(currentId === s.id) currentId = null;
+            }
+        };
+        container.appendChild(btn);
+    });
+}
+
+        function updateUI() {
+            const s = streamers.find(x => x.id === currentId);
+            if (!s) return;
+
+            const baseUrl = window.location.href.split('?')[0].replace('panel.html', 'source.html');
+            document.getElementById('overlay-url').innerText = `${baseUrl}?streamer=${s.id}`;
+
+            const sList = document.getElementById('scenes-list');
+            sList.innerHTML = '';
+            s.scenes.forEach((sc, idx) => {
+                const div = document.createElement('div');
+                div.className = `group flex items-center justify-between p-2 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${s.activeScene === sc.id ? 'bg-indigo-600 text-white' : 'bg-zinc-900/50 text-zinc-500 hover:bg-zinc-900'}`;
+                div.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden flex-1">
+                        <div class="flex flex-col gap-0.5 opacity-30">
+                            <button class="move-up-scene hover:text-white">▲</button>
+                            <button class="move-down-scene hover:text-white">▼</button>
+                        </div>
+                        <span class="truncate">${sc.name}</span>
+                    </div>
+                    <div class="hidden group-hover:flex gap-1.5 ml-2">
+                        <button class="edit-scene hover:text-white">✎</button>
+                        <button class="del-scene hover:text-red-400">✕</button>
+                    </div>
+                `;
+                div.onclick = () => save({ activeScene: sc.id });
+                div.querySelector('.move-up-scene').onclick = (e) => { e.stopPropagation(); moveItem(s.scenes, idx, -1); };
+                div.querySelector('.move-down-scene').onclick = (e) => { e.stopPropagation(); moveItem(s.scenes, idx, 1); };
+                div.querySelector('.edit-scene').onclick = (e) => { e.stopPropagation(); const n = prompt("Szenenname:", sc.name); if(n) { sc.name = n; save(); } };
+                div.querySelector('.del-scene').onclick = (e) => { e.stopPropagation(); if(s.scenes.length > 1 && confirm("Szene löschen?")) { s.scenes = s.scenes.filter(x => x.id !== sc.id); if(s.activeScene === sc.id) s.activeScene = s.scenes[0].id; save(); } };
+                sList.appendChild(div);
+            });
+
+            const srcList = document.getElementById('sources-list');
+            srcList.innerHTML = '';
+            const activeScene = s.scenes.find(sc => sc.id === s.activeScene);
+            if (activeScene) {
+                const sortedSources = [...activeScene.sources].sort((a,b) => b.z - a.z);
+                sortedSources.forEach((src) => {
+                    const isVis = src.visible !== false;
+                    const isLocked = src.locked === true;
+                    const div = document.createElement('div');
+                    div.className = `group flex items-center gap-2 p-2 rounded-lg text-[10px] font-bold border transition-all ${selectedId === src.id ? 'border-indigo-500 bg-indigo-500/10' : 'border-transparent bg-zinc-900/40 hover:bg-zinc-900'}`;
+                    div.innerHTML = `
+                        <button class="toggle-vis w-5 flex justify-center">
+                            ${isVis ? '<svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>' : '<svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/></svg>'}
+                        </button>
+                        <div class="flex flex-col gap-0.5 opacity-30">
+                            <button class="move-up-src" ${isLocked ? 'disabled style="opacity:0.3"' : ''}>▲</button>
+                            <button class="move-down-src" ${isLocked ? 'disabled style="opacity:0.3"' : ''}>▼</button>
+                        </div>
+                        <span class="flex-1 truncate cursor-pointer">${src.name}</span>
+                        <div class="hidden group-hover:flex gap-2 items-center">
+                            <button class="toggle-lock text-zinc-500 hover:text-white transition-colors" title="${isLocked ? 'Entsperren' : 'Fixieren'}">
+                                ${isLocked ? 
+                                    '<svg class="w-3.5 h-3.5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>' : 
+                                    '<svg class="w-3.5 h-3.5 text-zinc-400 hover:text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 116 0v2h2V7a5 5 0 00-5-5z"/></svg>'}
+                            </button>
+                            ${!isLocked ? `
+                            <button class="edit-src-name text-zinc-500 hover:text-white">✎</button>
+                            <button class="del-src text-zinc-500 hover:text-red-500">✕</button>
+                            ` : ''}
+                        </div>
+                    `;
+                    div.querySelector('span').onclick = () => { selectedId = src.id; updateUI(); };
+                    div.querySelector('.toggle-vis').onclick = (e) => { e.stopPropagation(); src.visible = !isVis; save(); };
+                    div.querySelector('.toggle-lock').onclick = (e) => { e.stopPropagation(); src.locked = !isLocked; save(); };
+                    if(!isLocked) {
+                        div.querySelector('.edit-src-name').onclick = (e) => { e.stopPropagation(); const n = prompt("Name:", src.name); if(n) { src.name = n; save(); } };
+                        div.querySelector('.del-src').onclick = (e) => { e.stopPropagation(); if(confirm("Löschen?")) { activeScene.sources = activeScene.sources.filter(x => x.id !== src.id); save(); } };
+                        div.querySelector('.move-up-src').onclick = (e) => { e.stopPropagation(); moveInZ(activeScene.sources, src, 1); };
+                        div.querySelector('.move-down-src').onclick = (e) => { e.stopPropagation(); moveInZ(activeScene.sources, src, -1); };
+                    }
+                    srcList.appendChild(div);
+                });
+                renderCanvas(activeScene);
+                renderInspector(activeScene);
+            }
+        }
+
+        function moveItem(arr, idx, dir) {
+            const n = idx + dir;
+            if(n < 0 || n >= arr.length) return;
+            [arr[idx], arr[n]] = [arr[n], arr[idx]];
+            save();
+        }
+
+        function moveInZ(sources, src, dir) {
+            sources.sort((a,b) => a.z - b.z);
+            const idx = sources.indexOf(src);
+            const n = idx + dir;
+            if(n < 0 || n >= sources.length) return;
+            [sources[idx], sources[n]] = [sources[n], sources[idx]];
+            sources.forEach((s, i) => s.z = i + 1);
+            save();
+        }
+
+        function renderCanvas(scene) {
+            const canvas = document.getElementById('canvas');
+            canvas.innerHTML = '';
+            scene.sources.sort((a,b) => a.z - b.z).forEach(src => {
+                const el = document.createElement('div');
+                el.className = `preview-item ${selectedId === src.id ? 'selected' : ''} ${src.visible === false ? 'hidden-src' : ''} ${src.locked ? 'locked' : ''}`;
+                
+                // Hintergrund Logik: Wenn bgEnabled false ist, explizit transparent
+                const bg = (src.bgEnabled === false) ? 'transparent' : (src.bgColor || '#1a1a1a');
+                
+                el.style.cssText = `left:${src.x}%; top:${src.y}%; width:${src.w}%; height:${src.h}%; background:${bg}; color:${src.color}; border-radius:${src.rounded || 0}px; font-size:${src.fontSize}px; opacity:${src.opacity}; z-index:${src.z};`;
+                el.innerHTML = `<span class="pointer-events-none select-none text-[8px] opacity-50 uppercase font-black">${src.name}</span><div class="resizer"></div>`;
+                
+                el.onmousedown = (e) => {
+                    if (e.target.className === 'resizer') return;
+                    selectedId = src.id; updateUI();
+                    if (src.locked) return;
+                    const rect = canvas.getBoundingClientRect();
+                    const startX = e.clientX, startY = e.clientY, initX = src.x, initY = src.y;
+                    const move = (m) => {
+                        src.x = initX + ((m.clientX - startX) / rect.width) * 100;
+                        src.y = initY + ((m.clientY - startY) / rect.height) * 100;
+                        el.style.left = src.x + '%'; el.style.top = src.y + '%';
+                    };
+                    const stop = () => { window.removeEventListener('mousemove', move); save(); };
+                    window.addEventListener('mousemove', move); window.addEventListener('mouseup', stop);
+                };
+                el.querySelector('.resizer').onmousedown = (e) => {
+                    e.stopPropagation();
+                    if (src.locked) return;
+                    const rect = canvas.getBoundingClientRect();
+                    const startW = src.w, startH = src.h, startX = e.clientX, startY = e.clientY;
+                    const move = (m) => {
+                        src.w = Math.max(1, startW + ((m.clientX - startX) / rect.width) * 100);
+                        src.h = Math.max(1, startH + ((m.clientY - startY) / rect.height) * 100);
+                        el.style.width = src.w + '%'; el.style.height = src.h + '%';
+                    };
+                    const stop = () => { window.removeEventListener('mousemove', move); save(); };
+                    window.addEventListener('mousemove', move); window.addEventListener('mouseup', stop);
+                };
+                canvas.appendChild(el);
+            });
+        }
+
+        function renderInspector(scene) {
+            const src = scene.sources.find(x => x.id === selectedId);
+            const ins = document.getElementById('inspector');
+            const empty = document.getElementById('no-selection');
+            if (!src) { ins.classList.add('hidden'); empty.classList.remove('hidden'); return; }
+            ins.classList.remove('hidden'); empty.classList.add('hidden');
+
+            const content = document.getElementById('inspector-fields');
+            
+            if (src.locked) {
+                content.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-zinc-500 gap-2 opacity-50 py-10">
+                    <div class="text-2xl">🔒</div>
+                    <div class="text-[10px] font-black uppercase tracking-widest text-center">Element ist fixiert</div>
+                    <div class="text-[9px] text-center">Zum Bearbeiten das Schloss-Symbol<br>in der Liste anklicken.</div>
+                </div>`;
+                return;
+            }
+
+            let html = `<div class="space-y-4">`;
+
+            if (src.type === 'timer') {
+    // (Bestehende Timer Logik bleibt gleich)
+    const total = parseInt(src.content) || 0;
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    html += `
+        <div class="grid grid-cols-2 gap-2">
+            <div><label class="text-[9px] font-black text-zinc-500 uppercase">Minuten</label><input type="number" id="t-min" value="${m}"></div>
+            <div><label class="text-[9px] font-black text-zinc-500 uppercase">Sekunden</label><input type="number" id="t-sec" value="${s}"></div>
+        </div>
+        <div class="bg-indigo-500/10 p-3 rounded-lg border border-indigo-500/20 space-y-3">
+            <div class="flex justify-between items-center"><span class="text-[9px] font-black uppercase text-indigo-400">Timer Steuerung</span></div>
+            <div class="flex gap-2">
+                <button id="timer-toggle" class="flex-1 ${src.isRunning ? 'bg-amber-600/20 text-amber-500' : 'bg-green-600/20 text-green-500'} py-2 rounded font-black text-[10px] uppercase">${src.isRunning ? 'Pause' : 'Start'}</button>
+            </div>
+        </div>
+    `;
+} else if (src.type === 'video') {
+    // Neues Feld für den Embed Code
+    html += `<div><label class="text-[9px] font-black text-zinc-500 uppercase">Iframe / Embed Code</label><textarea id="i-content" class="h-32 mt-1.5 font-mono text-[10px] resize-none" placeholder='<iframe...'>${src.content || ''}</textarea></div>`;
+} else if (src.type === 'web' || src.type === 'image') {
+    html += `<div><label class="text-[9px] font-black text-zinc-500 uppercase">URL / Pfad</label><input type="url" id="i-url" value="${src.content || ''}" placeholder="https://..."></div>`;
+    if (src.type === 'web') {
+        html += `<div><label class="text-[9px] font-black text-zinc-500 uppercase">Zoom / Skalierung</label><input type="number" step="0.1" id="i-scale" value="${src.scale || 1}" min="0.1" max="5"></div>`;
+    }
+} else {
+    html += `<div><label class="text-[9px] font-black text-zinc-500 uppercase">Inhalt</label><textarea id="i-content" class="h-24 mt-1.5 resize-none">${src.content || ''}</textarea></div>`;
+}
+
+            html += `
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-[9px] font-black text-zinc-500 uppercase">Textfarbe</label><input type="color" id="i-color" value="${src.color || '#ffffff'}"></div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[9px] font-black text-zinc-500 uppercase">Hintergrund</label>
+                            <div class="flex items-center gap-1">
+                                <span class="text-[8px] font-bold text-zinc-600">${src.bgEnabled !== false ? 'AKTIV' : 'AUS'}</span>
+                                <input type="checkbox" id="i-bg-enable" ${src.bgEnabled !== false ? 'checked' : ''}>
+                            </div>
+                        </div>
+                        <input type="color" id="i-bgcolor" value="${src.bgColor || '#1a1a1a'}" ${src.bgEnabled === false ? 'disabled style="opacity:0.3; cursor:not-allowed"' : ''}>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-[9px] font-black text-zinc-500 uppercase">Schriftgröße (px)</label><input type="number" id="i-size" value="${src.fontSize || 24}"></div>
+                    <div><label class="text-[9px] font-black text-zinc-500 uppercase">Abrundung (px)</label><input type="number" id="i-rounded" value="${src.rounded || 0}" min="0" max="1000"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-[9px] font-black text-zinc-500 uppercase">Ebene (Z)</label><div class="p-2 bg-zinc-900 rounded text-center text-xs font-mono">${src.z}</div></div>
+                    <div><label class="text-[9px] font-black text-zinc-500 uppercase">Deckkraft (0-1)</label><input type="number" step="0.1" id="i-opacity" value="${src.opacity || 1}" min="0" max="1"></div>
+                </div>
+            </div>`;
+
+            content.innerHTML = html;
+
+            const bind = (id, key, num=false) => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                el.onchange = () => { src[key] = num ? parseFloat(el.value) : el.value; save(); };
+            };
+
+            const bgEnable = document.getElementById('i-bg-enable');
+            bgEnable.onchange = () => { 
+                src.bgEnabled = bgEnable.checked; 
+                save(); 
+                // Inspector sofort neu laden, damit Input-Zustände (disabled) korrekt sind
+                renderInspector(scene); 
+            };
+
+            if(src.type === 'timer') {
+                const updateTimerVal = () => {
+                    const m = parseInt(document.getElementById('t-min').value) || 0;
+                    const s = parseInt(document.getElementById('t-sec').value) || 0;
+                    src.content = (m * 60 + s).toString();
+                    save();
+                };
+                document.getElementById('t-min').onchange = updateTimerVal;
+                document.getElementById('t-sec').onchange = updateTimerVal;
+                document.getElementById('timer-toggle').onclick = () => {
+                    if (src.isRunning) {
+                        const elapsed = Math.floor((Date.now() - (src.lastStarted || Date.now())) / 1000);
+                        src.content = Math.max(0, parseInt(src.content) - elapsed).toString();
+                        src.isRunning = false;
+                    } else {
+                        src.lastStarted = Date.now();
+                        src.isRunning = true;
+                    }
+                    save();
+                };
+            } else if (src.type === 'web' || src.type === 'image') {
+                bind('i-url', 'content');
+                if (src.type === 'web') bind('i-scale', 'scale', true);
+            } else {
+                bind('i-content', 'content');
+            }
+
+            bind('i-color', 'color');
+            bind('i-bgcolor', 'bgColor');
+            bind('i-size', 'fontSize', true);
+            bind('i-rounded', 'rounded', true);
+            bind('i-opacity', 'opacity', true);
+        }
+
+        async function save(extra = {}) {
+            if (!currentId) return;
+            const s = streamers.find(x => x.id === currentId);
+            await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('streamers').doc(currentId).update({ ...s, ...extra });
+        }
+
+        document.getElementById('add-streamer-btn').onclick = async () => {
+    const name = prompt("Profilname:");
+    if (!name) return;
+
+    const existing = streamers.find(s => s.name.toLowerCase() === name.toLowerCase());
+
+    if (existing) {
+        // Falls das Profil existiert, aber versteckt war, machen wir es wieder sichtbar
+        if (existing.hiddenInPanel) {
+            await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('streamers').doc(existing.id).update({
+                hiddenInPanel: false
+            });
+        }
+        currentId = existing.id;
+        selectedId = null;
+        renderTabs();
+        updateUI();
+    } else {
+        const id = "s_" + Math.random().toString(36).substr(2, 6);
+        await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('streamers').doc(id).set({ 
+            name, 
+            activeScene: 'sc1', 
+            scenes: [{ id: 'sc1', name: 'Start', sources: [] }],
+            hiddenInPanel: false // Standardmäßig sichtbar
+        });
+        currentId = id;
+    }
+};
+
+        document.getElementById('btn-add-scene').onclick = () => {
+            const n = prompt("Szenenname:");
+            if(!n) return;
+            const s = streamers.find(x => x.id === currentId);
+            const id = "sc"+Date.now();
+            s.scenes.push({ id, name: n, sources: [] });
+            save({ activeScene: id });
+        };
+
+        document.getElementById('btn-open-modal').onclick = () => document.getElementById('source-modal').classList.remove('hidden');
+        document.getElementById('btn-close-modal').onclick = () => document.getElementById('source-modal').classList.add('hidden');
+        
+        document.querySelectorAll('.add-src-btn').forEach(btn => {
+            btn.onclick = () => {
+                const type = btn.getAttribute('data-type');
+                const s = streamers.find(x => x.id === currentId);
+                const sc = s.scenes.find(sc => sc.id === s.activeScene);
+                const id = "src"+Date.now();
+                const nextZ = sc.sources.length + 1;
+                sc.sources.push({ 
+                    id, name: type.toUpperCase() + " " + nextZ, type, visible: true, bgEnabled: true,
+                    content: type === 'timer' ? '300' : (type === 'web' ? 'https://www.wikipedia.org' : 'Text'), 
+                    x: 10, y: 10, w: 20, h: 10, fontSize: 24, color: "#ffffff", bgColor: "#1e1e1e", rounded: 8, opacity: 1, z: nextZ, isRunning: false 
+                });
+                selectedId = id;
+                document.getElementById('source-modal').classList.add('hidden');
+                save();
+            };
+        });
+
+        document.getElementById('btn-copy-url').onclick = () => {
+            const t = document.createElement('textarea');
+            t.value = document.getElementById('overlay-url').innerText;
+            document.body.appendChild(t); t.select(); document.execCommand('copy');
+            document.body.removeChild(t);
+            document.getElementById('btn-copy-url').innerText = "KOPIERT!";
+            setTimeout(() => document.getElementById('btn-copy-url').innerText = "KOPIEREN", 2000);
+        };
+    </script>
+</body>
+</html>
