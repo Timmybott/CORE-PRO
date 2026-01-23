@@ -3,13 +3,13 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, si
 import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCtCIVlpeHxk58T0jocsAbz4sdZTvPKzys",
-    authDomain: "new-obs-data.firebaseapp.com",
-    projectId: "new-obs-data",
-    storageBucket: "new-obs-data.firebasestorage.app",
-    messagingSenderId: "552069224960",
-    appId: "1:552069224960:web:85dda7a0201682c96156e5",
-    measurementId: "G-C2M3ZEYXRT"
+  apiKey: "AIzaSyCtCIVlpeHxk58T0jocsAbz4sdZTvPKzys",
+  authDomain: "new-obs-data.firebaseapp.com",
+  projectId: "new-obs-data",
+  storageBucket: "new-obs-data.firebasestorage.app",
+  messagingSenderId: "552069224960",
+  appId: "1:552069224960:web:7b2b3c45c726bff96156e5",
+  measurementId: "G-MMBPF4RV07"
 };
 
 const app = initializeApp(firebaseConfig);
