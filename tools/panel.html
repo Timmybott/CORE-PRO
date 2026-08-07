@@ -142,6 +142,10 @@
             <button data-type="web" class="add-src-btn bg-zinc-900 p-4 rounded-xl hover:bg-indigo-600 transition-colors text-[10px] font-bold">WEB</button>
             <button data-type="timer" class="add-src-btn bg-zinc-900 p-4 rounded-xl hover:bg-indigo-600 transition-colors text-[10px] font-bold">TIMER</button>
             <button data-type="video" class="add-src-btn bg-zinc-900 p-4 rounded-xl hover:bg-indigo-600 transition-colors text-[10px] font-bold col-span-2">YOUTUBE / VIDEO CODE</button>
+            <button data-type="weblink" class="add-src-btn bg-indigo-600/20 border border-indigo-500/40 p-4 rounded-xl hover:bg-indigo-600 transition-colors text-[10px] font-bold col-span-2 flex flex-col items-center gap-1">
+                <span>WEB LINK</span>
+                <span class="text-[8px] font-medium opacity-60 normal-case">Zeitgesteuert · Fade In/Out</span>
+            </button>
         </div>
         <button id="btn-close-modal" class="w-full mt-6 text-[9px] font-black opacity-30 uppercase">Abbrechen</button>
     </div>
@@ -553,6 +557,32 @@
 } else if (src.type === 'video') {
     // Neues Feld für den Embed Code
     html += `<div><label class="text-[9px] font-black text-zinc-500 uppercase">Iframe / Embed Code</label><textarea id="i-content" class="h-32 mt-1.5 font-mono text-[10px] resize-none" placeholder='<iframe...'>${src.content || ''}</textarea></div>`;
+} else if (src.type === 'weblink') {
+    const styles = ['fade','slide-up','slide-down','slide-left','slide-right','zoom'];
+    const styleLabels = { 'fade':'Fade', 'slide-up':'Slide ▲', 'slide-down':'Slide ▼', 'slide-left':'Slide ◀', 'slide-right':'Slide ▶', 'zoom':'Zoom' };
+    const curStyle = src.animStyle || 'fade';
+    html += `<div><label class="text-[9px] font-black text-zinc-500 uppercase">Web Link URL</label><input type="url" id="i-url" value="${src.content || ''}" placeholder="https://streamelements.com/overlay/..."></div>`;
+    html += `<div><label class="text-[9px] font-black text-zinc-500 uppercase">Zoom / Skalierung</label><input type="number" step="0.1" id="i-scale" value="${src.scale || 1}" min="0.1" max="5"></div>`;
+    html += `
+        <div class="bg-indigo-500/10 p-3 rounded-lg border border-indigo-500/20 space-y-3">
+            <div class="text-[9px] font-black uppercase text-indigo-400 tracking-widest">Zeitsteuerung</div>
+            <div class="grid grid-cols-2 gap-2">
+                <div><label class="text-[9px] font-black text-zinc-500 uppercase">Anzeigedauer (s)</label><input type="number" id="i-showdur" value="${src.showDuration != null ? src.showDuration : 10}" min="0.1" step="0.5"></div>
+                <div><label class="text-[9px] font-black text-zinc-500 uppercase">Abstand / Pause (s)</label><input type="number" id="i-hideint" value="${src.hideInterval != null ? src.hideInterval : 30}" min="0" step="0.5"></div>
+            </div>
+        </div>
+        <div class="bg-indigo-500/10 p-3 rounded-lg border border-indigo-500/20 space-y-3">
+            <div class="text-[9px] font-black uppercase text-indigo-400 tracking-widest">Animation</div>
+            <div><label class="text-[9px] font-black text-zinc-500 uppercase">Stil</label>
+                <select id="i-animstyle">
+                    ${styles.map(st => `<option value="${st}" ${curStyle === st ? 'selected' : ''}>${styleLabels[st]}</option>`).join('')}
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div><label class="text-[9px] font-black text-zinc-500 uppercase">Einblenden (ms)</label><input type="number" id="i-fadein" value="${src.fadeIn != null ? src.fadeIn : 800}" min="0" step="50"></div>
+                <div><label class="text-[9px] font-black text-zinc-500 uppercase">Ausblenden (ms)</label><input type="number" id="i-fadeout" value="${src.fadeOut != null ? src.fadeOut : 800}" min="0" step="50"></div>
+            </div>
+        </div>`;
 } else if (src.type === 'web' || src.type === 'image') {
     html += `<div><label class="text-[9px] font-black text-zinc-500 uppercase">URL / Pfad</label><input type="url" id="i-url" value="${src.content || ''}" placeholder="https://..."></div>`;
     if (src.type === 'web') {
@@ -622,6 +652,14 @@
                     }
                     save();
                 };
+            } else if (src.type === 'weblink') {
+                bind('i-url', 'content');
+                bind('i-scale', 'scale', true);
+                bind('i-showdur', 'showDuration', true);
+                bind('i-hideint', 'hideInterval', true);
+                bind('i-fadein', 'fadeIn', true);
+                bind('i-fadeout', 'fadeOut', true);
+                bind('i-animstyle', 'animStyle');
             } else if (src.type === 'web' || src.type === 'image') {
                 bind('i-url', 'content');
                 if (src.type === 'web') bind('i-scale', 'scale', true);
@@ -690,11 +728,23 @@
                 const sc = s.scenes.find(sc => sc.id === s.activeScene);
                 const id = "src"+Date.now();
                 const nextZ = sc.sources.length + 1;
-                sc.sources.push({ 
-                    id, name: type.toUpperCase() + " " + nextZ, type, visible: true, bgEnabled: true,
-                    content: type === 'timer' ? '300' : (type === 'web' ? 'https://www.wikipedia.org' : 'Text'), 
-                    x: 10, y: 10, w: 20, h: 10, fontSize: 24, color: "#ffffff", bgColor: "#1e1e1e", rounded: 8, opacity: 1, z: nextZ, isRunning: false 
-                });
+                const label = type === 'weblink' ? "WEB LINK " + nextZ : type.toUpperCase() + " " + nextZ;
+                const newSrc = {
+                    id, name: label, type, visible: true, bgEnabled: type === 'weblink' ? false : true,
+                    content: type === 'timer' ? '300' : (type === 'web' ? 'https://www.wikipedia.org' : (type === 'weblink' ? '' : 'Text')),
+                    x: 10, y: 10, w: 20, h: 10, fontSize: 24, color: "#ffffff", bgColor: "#1e1e1e", rounded: 8, opacity: 1, z: nextZ, isRunning: false
+                };
+                if (type === 'weblink') {
+                    // Zeitsteuerung & Animationen für den Web Link
+                    newSrc.scale = 1;
+                    newSrc.showDuration = 10;   // Anzeigedauer in Sekunden
+                    newSrc.hideInterval = 30;   // Abstand / Pause in Sekunden
+                    newSrc.fadeIn = 800;        // Einblenden in ms
+                    newSrc.fadeOut = 800;       // Ausblenden in ms
+                    newSrc.animStyle = 'fade';  // fade | slide-up | slide-down | slide-left | slide-right | zoom
+                    newSrc.w = 25; newSrc.h = 15;
+                }
+                sc.sources.push(newSrc);
                 selectedId = id;
                 document.getElementById('source-modal').classList.add('hidden');
                 save();
