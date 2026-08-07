@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>OBS CORE PRO - Advanced Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -381,7 +384,8 @@
             if (!s) return;
 
             const baseUrl = window.location.href.split('?')[0].replace('panel.html', 'source.html');
-            document.getElementById('overlay-url').innerText = `${baseUrl}?streamer=${s.id}`;
+            // &v=... erzwingt in OBS ein Neuladen (statt der zwischengespeicherten alten Datei)
+            document.getElementById('overlay-url').innerText = `${baseUrl}?streamer=${s.id}&v=weblink-v3`;
 
             const sList = document.getElementById('scenes-list');
             sList.innerHTML = '';

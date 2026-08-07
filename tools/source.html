@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>OBS Source Display</title>
     <style>
         body { background: transparent; margin: 0; padding: 0; overflow: hidden; width: 100vw; height: 100vh; color: white; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -96,6 +99,9 @@
             requestAnimationFrame(() => requestAnimationFrame(show));
         }
 
+        const SOURCE_VERSION = "weblink-v3";
+        console.log("[CORE] source.html geladen – Version:", SOURCE_VERSION);
+
         async function init() {
             await auth.signInAnonymously();
             if (!streamerId) {
@@ -104,7 +110,7 @@
             }
             db.collection('artifacts').doc(appId).collection('public').doc('data').collection('streamers').doc(streamerId).onSnapshot((snap) => {
                 if (snap.exists) {
-                    debug.innerText = "Verbunden: " + streamerId;
+                    debug.innerText = "Verbunden: " + streamerId + " (" + SOURCE_VERSION + ")";
                     render(snap.data());
                 } else {
                     debug.innerText = "ID nicht gefunden";
