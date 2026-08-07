@@ -62,13 +62,14 @@
 
         // Blendet den Web Link im Intervall ein und wieder aus
         function startWeblinkCycle(el, src) {
-            const showDur  = Math.max(0.1, (src.showDuration != null ? parseFloat(src.showDuration) : 10)) * 1000;
-            const hideInt  = Math.max(0,   (src.hideInterval != null ? parseFloat(src.hideInterval) : 30)) * 1000;
+            const showDur  = Math.max(0.1, (src.showDuration != null ? parseFloat(src.showDuration) : 20)) * 1000;
+            const hideInt  = Math.max(0,   (src.hideInterval != null ? parseFloat(src.hideInterval) : 10)) * 1000;
             const fadeIn   = Math.max(0,   (src.fadeIn  != null ? parseFloat(src.fadeIn)  : 800));
             const fadeOut  = Math.max(0,   (src.fadeOut != null ? parseFloat(src.fadeOut) : 800));
             const style    = src.animStyle || 'fade';
-            const maxOpacity = (src.opacity != null ? src.opacity : 1);
+            const maxOpacity = String(src.opacity != null ? src.opacity : 1);
             const hiddenT  = weblinkHiddenTransform(style);
+            const alwaysOn = src.alwaysOn === true; // wie "WEB", nur mit Einblend-Animation
 
             el.style.transformOrigin = 'center center';
             // Startzustand: unsichtbar
@@ -80,6 +81,7 @@
                 el.style.transition = `opacity ${fadeIn}ms ease, transform ${fadeIn}ms ease`;
                 el.style.opacity = maxOpacity;
                 el.style.transform = 'none';
+                if (alwaysOn) return; // dauerhaft sichtbar: kein Ausblenden
                 weblinkTimers.push(setTimeout(hide, fadeIn + showDur));
             };
             const hide = () => {
@@ -89,8 +91,9 @@
                 weblinkTimers.push(setTimeout(show, fadeOut + hideInt));
             };
 
-            // Kurze Verzögerung, damit der Startzustand gerendert wird und die erste Animation greift
-            weblinkTimers.push(setTimeout(show, 60));
+            // Über zwei Frames einblenden, damit der Startzustand sicher gerendert ist
+            // und die CSS-Transition zuverlässig auslöst.
+            requestAnimationFrame(() => requestAnimationFrame(show));
         }
 
         async function init() {
