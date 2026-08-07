@@ -42,6 +42,56 @@
         const debug = document.getElementById('debug-status');
 
         let activeSources = [];
+        let weblinkTimers = [];
+
+        function clearWeblinkTimers() {
+            weblinkTimers.forEach(t => clearTimeout(t));
+            weblinkTimers = [];
+        }
+
+        function weblinkHiddenTransform(style) {
+            switch (style) {
+                case 'slide-up':    return 'translateY(40px)';
+                case 'slide-down':  return 'translateY(-40px)';
+                case 'slide-left':  return 'translateX(40px)';
+                case 'slide-right': return 'translateX(-40px)';
+                case 'zoom':        return 'scale(0.85)';
+                default:            return 'none'; // fade
+            }
+        }
+
+        // Blendet den Web Link im Intervall ein und wieder aus
+        function startWeblinkCycle(el, src) {
+            const showDur  = Math.max(0.1, (src.showDuration != null ? parseFloat(src.showDuration) : 10)) * 1000;
+            const hideInt  = Math.max(0,   (src.hideInterval != null ? parseFloat(src.hideInterval) : 30)) * 1000;
+            const fadeIn   = Math.max(0,   (src.fadeIn  != null ? parseFloat(src.fadeIn)  : 800));
+            const fadeOut  = Math.max(0,   (src.fadeOut != null ? parseFloat(src.fadeOut) : 800));
+            const style    = src.animStyle || 'fade';
+            const maxOpacity = (src.opacity != null ? src.opacity : 1);
+            const hiddenT  = weblinkHiddenTransform(style);
+
+            el.style.transformOrigin = 'center center';
+            // Startzustand: unsichtbar
+            el.style.transition = 'none';
+            el.style.opacity = '0';
+            el.style.transform = hiddenT;
+
+            const show = () => {
+                el.style.transition = `opacity ${fadeIn}ms ease, transform ${fadeIn}ms ease`;
+                el.style.opacity = maxOpacity;
+                el.style.transform = 'none';
+                weblinkTimers.push(setTimeout(hide, fadeIn + showDur));
+            };
+            const hide = () => {
+                el.style.transition = `opacity ${fadeOut}ms ease, transform ${fadeOut}ms ease`;
+                el.style.opacity = '0';
+                el.style.transform = hiddenT;
+                weblinkTimers.push(setTimeout(show, fadeOut + hideInt));
+            };
+
+            // Kurze Verzögerung, damit der Startzustand gerendert wird und die erste Animation greift
+            weblinkTimers.push(setTimeout(show, 60));
+        }
 
         async function init() {
             await auth.signInAnonymously();
@@ -62,7 +112,8 @@
         function render(data) {
             const activeScene = data.scenes.find(s => s.id === data.activeScene);
             if (!activeScene) return;
-            
+
+            clearWeblinkTimers();
             container.innerHTML = '';
             activeSources = activeScene.sources.filter(s => s.visible !== false);
             
@@ -116,6 +167,29 @@
     iframe.setAttribute("allowtransparency", "true");
     iframe.setAttribute("sandbox", "allow-same-origin allow-scripts allow-pointer-lock allow-popups allow-forms allow-presentation");
     el.appendChild(iframe);
+} else if (src.type === 'weblink') {
+    // Zeitgesteuerter Web Link mit Ein-/Ausblend-Animationen
+    const iframe = document.createElement('iframe');
+    iframe.src = src.content;
+
+    const scale = src.scale || 1;
+    if (scale !== 1) {
+        iframe.style.width = `${100 / scale}%`;
+        iframe.style.height = `${100 / scale}%`;
+        iframe.style.transform = `scale(${scale})`;
+        iframe.style.transformOrigin = 'center center';
+    }
+
+    const permissions = "autoplay; fullscreen; microphone; camera; encrypted-media";
+    iframe.allow = permissions;
+    iframe.setAttribute("allow", permissions);
+    iframe.setAttribute("allowfullscreen", "");
+    iframe.setAttribute("allowtransparency", "true");
+    iframe.setAttribute("sandbox", "allow-same-origin allow-scripts allow-pointer-lock allow-popups allow-forms allow-presentation");
+    el.appendChild(iframe);
+
+    // Zyklus (Anzeigen -> Warten) mit Animation starten
+    if (src.content) startWeblinkCycle(el, src);
 } else if (src.type === 'timer') {
                     const timerDiv = document.createElement('div');
                     timerDiv.id = "timer-val-" + src.id;
